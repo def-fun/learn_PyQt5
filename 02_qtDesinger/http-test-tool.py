@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QApplication, QMessageBox
+from PySide2.QtWidgets import QApplication, QHeaderView
 from PySide2.QtUiTools import QUiLoader
 import requests
 from PySide2.QtCore import QFile
@@ -18,6 +18,8 @@ class HttpClient:
         self.ui = QUiLoader().load(qfile)
         # self.ui = QUiLoader().load('untitled.ui')
         # self.ui.boxMethod.addItems(['GET', 'POST', 'PUT', 'DELETE'])
+        self.ui.headersTable.horizontalHeader().setStretchLastSection(True)
+        self.ui.headersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.ui.buttonSend.clicked.connect(self.sendRequest)
         self.ui.buttonAddHeader.clicked.connect(self.addOneHeader)
