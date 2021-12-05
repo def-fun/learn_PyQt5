@@ -1,3 +1,5 @@
+import traceback
+
 from PySide2.QtWidgets import QApplication, QHeaderView
 from PySide2.QtUiTools import QUiLoader
 import requests
@@ -44,6 +46,8 @@ class HttpClient:
         for row in range(ht.rowCount()):
             k = ht.item(row, 0).text()
             v = ht.item(row, 1).text()
+            if k.strip() == '':
+                continue
             headers[k] = v
 
         req = requests.Request(method, url, headers=headers, data=payload)
@@ -51,8 +55,11 @@ class HttpClient:
 
         self.pretty_print_request(prepared)
         s = requests.Session()
-        r = s.send(prepared)
-        self.pretty_print_response(r)
+        try:
+            r = s.send(prepared)
+            self.pretty_print_response(r)
+        except:
+            self.ui.outputWindow.append(traceback.format_exc())
 
     def pretty_print_request(self, req):
         if req.body == None:
