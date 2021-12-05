@@ -3,11 +3,16 @@ from threading import Thread
 from PySide2.QtWidgets import QApplication, QHeaderView
 from PySide2.QtUiTools import QUiLoader
 import requests
-from PySide2.QtCore import QFile
+from PySide2.QtCore import QFile, Signal, QObject
 from PySide2.QtGui import QIcon
 
 
 # https://www.bilibili.com/video/BV1cJ411R7bP?p=9&spm_id_from=pageDriver
+
+class MySignals(QObject):
+    # 用于在子线程里更新图形界面
+    text_print = Signal(str)
+
 
 class HttpClient:
     def __init__(self):
@@ -18,15 +23,21 @@ class HttpClient:
         qfile.open(QFile.ReadOnly)
         qfile.close()
         self.ui = QUiLoader().load(qfile)
+        self.my_signal = MySignals()
         # self.ui = QUiLoader().load('untitled.ui')
         # self.ui.boxMethod.addItems(['GET', 'POST', 'PUT', 'DELETE'])
         self.ui.headersTable.horizontalHeader().setStretchLastSection(True)
         self.ui.headersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         self.ui.buttonSend.clicked.connect(self.sendRequest)
+        self.my_signal.text_print.connect(self.print_to_gui)
         self.ui.buttonAddHeader.clicked.connect(self.addOneHeader)
         self.ui.buttonDelHeader.clicked.connect(self.delOneHeader)
         self.ui.clearButton.clicked.connect(self.clearWindow)
+
+    def print_to_gui(self, text):
+        # print(text)
+        self.ui.outputWindow.append(str(text))
 
     def addOneHeader(self):
         addRowNumber = self.ui.headersTable.currentRow() + 1
@@ -38,6 +49,7 @@ class HttpClient:
         )
 
     def sendRequest(self):
+        print('clicked')
         method = self.ui.boxMethod.currentText()
         url = self.ui.editUrl.text()
         payload = self.ui.editBody.toPlainText()
@@ -63,7 +75,7 @@ class HttpClient:
             r = s.send(prepared)
             self.pretty_print_response(r)
         except:
-            self.ui.outputWindow.append(traceback.format_exc())
+            self.my_signal.text_print.emit(traceback.format_exc())
 
     def pretty_print_request(self, req):
         if req.body == None:
@@ -71,22 +83,36 @@ class HttpClient:
         else:
             msgBody = req.body
 
-        self.ui.outputWindow.append(
-            '{}\n{}\n{}\n\n{}'.format(
-                '\n\n------发送请求------',
-                req.method + ' ' + req.url,
-                '\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
-                msgBody,
-            ))
+        # self.ui.outputWindow.append(
+        #     '{}\n{}\n{}\n\n{}'.format(
+        #         '\n\n------发送请求------',
+        #         req.method + ' ' + req.url,
+        #         '\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
+        #         msgBody,
+        #     ))
+        text = '{}\n{}\n{}\n\n{}'.format(
+            '\n\n------发送请求------',
+            req.method + ' ' + req.url,
+            '\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
+            msgBody,
+        )
+        self.my_signal.text_print.emit(text)
 
     def pretty_print_response(self, res):
-        self.ui.outputWindow.append(
-            '{}\nHTTP/1.1 {}\n{}\n\n{}'.format(
-                '\n\n----得到响应------',
-                res.status_code,
-                '\n'.join('{}: {}'.format(k, v) for k, v in res.headers.items()),
-                res.text,
-            ))
+        # self.ui.outputWindow.append(
+        #     '{}\nHTTP/1.1 {}\n{}\n\n{}'.format(
+        #         '\n\n----得到响应------',
+        #         res.status_code,
+        #         '\n'.join('{}: {}'.format(k, v) for k, v in res.headers.items()),
+        #         res.text,
+        #     ))
+        text = '{}\nHTTP/1.1 {}\n{}\n\n{}'.format(
+            '\n\n----得到响应------',
+            res.status_code,
+            '\n'.join('{}: {}'.format(k, v) for k, v in res.headers.items()),
+            res.text,
+        )
+        self.my_signal.text_print.emit(text)
 
     def clearWindow(self):
         self.ui.outputWindow.clear()
