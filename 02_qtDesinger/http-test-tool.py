@@ -1,5 +1,5 @@
 import traceback
-
+from threading import Thread
 from PySide2.QtWidgets import QApplication, QHeaderView
 from PySide2.QtUiTools import QUiLoader
 import requests
@@ -55,6 +55,10 @@ class HttpClient:
 
         self.pretty_print_request(prepared)
         s = requests.Session()
+        t = Thread(target=self.req_thread, args=(s, prepared))
+        t.start()
+
+    def req_thread(self, s, prepared):
         try:
             r = s.send(prepared)
             self.pretty_print_response(r)
